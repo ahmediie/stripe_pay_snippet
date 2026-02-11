@@ -153,3 +153,86 @@
     ],
   );
 
+  const amountFormatted = useMemo(() => AMOUNT.toFixed(2), [AMOUNT]);
+
+  if (
+    bookingFee === null ||
+    !business ||
+    booking === null ||
+    booking.full_amount === null ||
+    googleTestEnvironment === null
+  ) {
+    return <FullScreenLoading />;
+  }
+
+  if (paymentConfirmed && booking?.deposit !== "paid" && !booking.full_amount) {
+    return <FullScreenLoading />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <ScrollView style={{ padding: 16, flex: 1, width: windowWidth }} showsVerticalScrollIndicator={false}>
+        <CustomText
+          level="displaySmall"
+          color={colors.deepSea}
+          style={{ marginTop: 16, marginBottom: 8, marginHorizontal: 16 }}
+        >
+          Book appointment
+        </CustomText>
+
+        <View style={{ width: "100%", marginHorizontal: 16 }}>
+          <LabelValueCombo
+            label="Location"
+            value={business?.full_address ? business?.full_address : `${business?.city}, ${business?.country}`}
+          />
+          <LabelValueCombo
+            label="Reserved slot"
+            value={`${formattedDate(booking.date)}, ${booking.start_time.substring(
+              0,
+              5,
+            )} - ${booking.end_time.substring(0, 5)}`}
+          />
+
+          <LabelValueCombo label="Service" value={booking.service_name} />
+          {booking.service_type && <LabelValueCombo label="Service option" value={booking.service_type} />}
+          <LabelValueCombo
+            label="Booking deposit"
+            value={`£${amountFormatted} ${
+              booking.refundable ? `(Includes £${bookingFee.toFixed(2)} booking fee )` : ""
+            }`}
+          />
+          <LabelValueCombo
+            label="payment after service"
+            value={`£${(booking.full_amount - (booking.deposit_amount ?? 0)).toFixed(2)}`}
+          />
+          <LabelValueCombo label="Total price" value={`£${booking.full_amount.toFixed(2)}`} />
+        </View>
+        <CancelPolicy refundable={booking.refundable} />
+        <View style={{ height: 280 }} />
+      </ScrollView>
+
+      <View style={styles.paymentOptions}>
+        <View style={styles.paymentAmountContainer}>
+          <CustomText color={colors.deepSea}>Booking deposit</CustomText>
+          <CustomText level="header" color={colors.deepSea} textAlign="right">
+            £{amountFormatted}
+          </CustomText>
+        </View>
+
+        {platformPaySupported && (
+          <CustomPayButton
+            type={Platform.OS === "ios" ? "Apple" : "Google"}
+            onPress={() => handlePayment("platform")}
+            loading={nativePayLoading || !BOOKING_ID || !SERVICE_PROVIDER_ID}
+          />
+        )}
+
+        <CustomPayButton
+          type={platformPaySupported ? "Card" : "CardPrimary"}
+          onPress={() => handlePayment("card")}
+          loading={cardLoading || !BOOKING_ID || !SERVICE_PROVIDER_ID}
+        />
+      </View>
+    </View>
+  );
+};
